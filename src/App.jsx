@@ -3,9 +3,17 @@ import { toPng } from "html-to-image";
 import { geoCentroid } from "d3-geo";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
-const STORAGE_KEY = "visited-us-states";
+const US_GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+const EUROPE_GEO_URL =
+  "https://raw.githubusercontent.com/deldersveld/topojson/master/continents/europe.json";
+const STORAGE_KEY_US = "visited-us-states";
+const STORAGE_KEY_EUROPE = "visited-europe-countries";
 const DEFAULT_VISITED = ["Texas", "New Jersey"];
+const DEFAULT_VISITED_EUROPE = [];
+const VISITED_COLOR = "#10B981";
+const HOVER_VISITED_COLOR = "#059669";
+const TAB_US = "us";
+const TAB_EUROPE = "europe";
 const REGION_BY_STATE = {
   Connecticut: "Northeast",
   Maine: "Northeast",
@@ -170,73 +178,99 @@ const US_STATES = [
   "Wyoming",
 ];
 
-const ABBR_TO_STATE = Object.fromEntries(
-  Object.entries(STATE_ABBR).map(([state, abbr]) => [abbr, state])
-);
+const EUROPE_COUNTRIES = [
+  "United Kingdom",
+  "France",
+  "Germany",
+  "Spain",
+  "Italy",
+  "Switzerland",
+  "Portugal",
+  "Netherlands",
+  "Belgium",
+  "Austria",
+  "Poland",
+  "Czech Republic",
+  "Denmark",
+  "Ireland",
+  "Norway",
+  "Sweden",
+  "Finland",
+  "Greece",
+  "Romania",
+  "Hungary",
+];
 
-function normalizeVisited(states) {
-  const cleaned = Array.isArray(states)
-    ? states.filter((state) => US_STATES.includes(state))
+function normalizeVisited(items, allowedList) {
+  const cleaned = Array.isArray(items)
+    ? items.filter((item) => allowedList.includes(item))
     : [];
   return [...new Set(cleaned)];
 }
 
-function getVisitedFromUrl() {
+function getVisitedFromUrl(allowedList) {
   try {
     const params = new URLSearchParams(window.location.search);
-    if (!params.has("visited")) return { hasParam: false, states: [] };
+    if (!params.has("visited")) return { hasParam: false, items: [] };
     const shared = params.get("visited") ?? "";
 
-    const states = shared
-      .split(",")
-      .map((abbr) => ABBR_TO_STATE[abbr.trim().toUpperCase()])
-      .filter(Boolean);
+    const items = shared.split(",").map((item) => decodeURIComponent(item.trim()));
 
-    return { hasParam: true, states: normalizeVisited(states) };
+    return { hasParam: true, items: normalizeVisited(items, allowedList) };
   } catch {
-    return { hasParam: false, states: [] };
+    return { hasParam: false, items: [] };
   }
 }
 
-function getInitialVisited() {
-  const visitedFromUrl = getVisitedFromUrl();
+function getInitialVisited(storageKey, defaultList, allowedList) {
+  const visitedFromUrl = getVisitedFromUrl(allowedList);
   if (visitedFromUrl.hasParam) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(visitedFromUrl.states));
-    return visitedFromUrl.states;
+    localStorage.setItem(storageKey, JSON.stringify(visitedFromUrl.items));
+    return visitedFromUrl.items;
   }
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_VISITED;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return defaultList;
     const parsed = JSON.parse(raw);
-    const normalized = normalizeVisited(parsed);
-    return normalized.length > 0 ? normalized : DEFAULT_VISITED;
+    const normalized = normalizeVisited(parsed, allowedList);
+    return normalized.length > 0 ? normalized : defaultList;
   } catch {
-    return DEFAULT_VISITED;
+    return defaultList;
   }
 }
 
 export default function App() {
   const mapCaptureRef = useRef(null);
-  const [visited, setVisited] = useState(getInitialVisited);
+  const [activeTab, setActiveTab] = useState(TAB_US);
+  const [visitedUS, setVisitedUS] = useState(() =>
+    getInitialVisited(STORAGE_KEY_US, DEFAULT_VISITED, US_STATES)
+  );
+  const [visitedEurope, setVisitedEurope] = useState(() =>
+    getInitialVisited(STORAGE_KEY_EUROPE, DEFAULT_VISITED_EUROPE, EUROPE_COUNTRIES)
+  );
   const [shareMessage, setShareMessage] = useState("");
-  const visitedSet = useMemo(() => new Set(visited), [visited]);
-  const visitedPercentage = Math.round((visited.length / US_STATES.length) * 100);
-  const visitedParam = visited
-    .map((state) => STATE_ABBR[state])
-    .filter(Boolean)
+  const isUS = activeTab === TAB_US;
+  const currentItems = isUS ? US_STATES : EUROPE_COUNTRIES;
+  const currentVisited = isUS ? visitedUS : visitedEurope;
+  const currentVisitedSet = useMemo(() => new Set(currentVisited), [currentVisited]);
+  const visitedPercentage = Math.round((currentVisited.length / currentItems.length) * 100);
+  const visitedParam = currentVisited
+    .map((item) => encodeURIComponent(item))
     .sort()
     .join(",");
-  const shareUrl = `${window.location.origin}${window.location.pathname}?visited=${visitedParam}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?map=${activeTab}&visited=${visitedParam}`;
 
-  const toggleState = (stateName) => {
-    if (!stateName || !US_STATES.includes(stateName)) return;
+  const toggleItem = (itemName) => {
+    if (!itemName || !currentItems.includes(itemName)) return;
 
-    setVisited((current) => {
-      const next = current.includes(stateName)
-        ? current.filter((name) => name !== stateName)
-        : [...current, stateName];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const setter = isUS ? setVisitedUS : setVisitedEurope;
+    const storageKey = isUS ? STORAGE_KEY_US : STORAGE_KEY_EUROPE;
+    setter((current) => {
+      const next = current.includes(itemName)
+        ? current.filter((name) => name !== itemName)
+        : [...current, itemName];
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
   };
@@ -245,8 +279,10 @@ export default function App() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "My US Travel Map",
-          text: `我已造訪 ${visited.length}/${US_STATES.length} 州，來看看我的足跡！`,
+          title: isUS ? "My US Travel Map" : "My Europe Travel Map",
+          text: `我已造訪 ${currentVisited.length}/${currentItems.length} ${
+            isUS ? "州" : "國家"
+          }，來看看我的足跡！`,
           url: shareUrl,
         });
         setShareMessage("已開啟分享面板！");
@@ -269,7 +305,7 @@ export default function App() {
         pixelRatio: 2,
       });
       const link = document.createElement("a");
-      link.download = `us-travel-map-${visited.length}-states.png`;
+      link.download = `${activeTab}-travel-map-${currentVisited.length}.png`;
       link.href = dataUrl;
       link.click();
       setShareMessage("已下載圖片！");
@@ -279,8 +315,13 @@ export default function App() {
   };
 
   const handleClearAll = () => {
-    setVisited([]);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    if (isUS) {
+      setVisitedUS([]);
+      localStorage.setItem(STORAGE_KEY_US, JSON.stringify([]));
+    } else {
+      setVisitedEurope([]);
+      localStorage.setItem(STORAGE_KEY_EUROPE, JSON.stringify([]));
+    }
     setShareMessage("");
   };
 
@@ -288,8 +329,28 @@ export default function App() {
     <div className="page">
       <main className="layout">
         <section className="map-panel" ref={mapCaptureRef}>
-          <h1>US Visited States Map</h1>
-          <p>Click a state on the map, or check from the list.</p>
+          <div className="tab-row">
+            <button
+              type="button"
+              className={`tab-button ${isUS ? "active" : ""}`}
+              onClick={() => setActiveTab(TAB_US)}
+            >
+              美國地圖
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${!isUS ? "active" : ""}`}
+              onClick={() => setActiveTab(TAB_EUROPE)}
+            >
+              歐洲地圖
+            </button>
+          </div>
+          <h1>{isUS ? "US Visited States Map" : "Europe Visited Countries Map"}</h1>
+          <p>
+            {isUS
+              ? "Click a state on the map, or check from the list."
+              : "Click a country on the map, or check from the list."}
+          </p>
           <div className="share-row">
             <button type="button" className="share-button" onClick={handleShare}>
               分享我的足跡
@@ -300,39 +361,45 @@ export default function App() {
             {shareMessage ? <span className="share-message">{shareMessage}</span> : null}
           </div>
 
-          <ComposableMap projection="geoAlbersUsa" className="us-map">
-            <Geographies geography={GEO_URL}>
+          <ComposableMap
+            projection={isUS ? "geoAlbersUsa" : "geoMercator"}
+            projectionConfig={isUS ? undefined : { scale: 430, center: [15, 52] }}
+            className="us-map"
+          >
+            <Geographies geography={isUS ? US_GEO_URL : EUROPE_GEO_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const stateName = geo.properties.name;
-                  const isVisited = visitedSet.has(stateName);
-                  const abbreviation = STATE_ABBR[stateName];
+                  const geoName = geo.properties.name || geo.properties.NAME || geo.properties.NAME_EN;
+                  const isVisited = currentVisitedSet.has(geoName);
+                  const abbreviation = isUS ? STATE_ABBR[geoName] : null;
                   const centroid = geoCentroid(geo);
-                  const region = REGION_BY_STATE[stateName] ?? "Northeast";
+                  const region = REGION_BY_STATE[geoName] ?? "Northeast";
                   const palette = REGION_COLORS[region];
+                  const defaultFill = isUS ? palette.default : "#1f2937";
+                  const hoverDefault = isUS ? palette.hoverDefault : "#334155";
 
                   return (
                     <g key={geo.rsmKey}>
                       <Geography
                         geography={geo}
-                        onClick={() => toggleState(stateName)}
+                        onClick={() => toggleItem(geoName)}
                         style={{
                           default: {
-                            fill: isVisited ? palette.visited : palette.default,
+                            fill: isVisited ? VISITED_COLOR : defaultFill,
                             stroke: "#ffffff",
                             strokeWidth: 0.5,
                             outline: "none",
                             cursor: "pointer",
                           },
                           hover: {
-                            fill: isVisited ? palette.hoverVisited : palette.hoverDefault,
+                            fill: isVisited ? HOVER_VISITED_COLOR : hoverDefault,
                             stroke: "#ffffff",
                             strokeWidth: 0.5,
                             outline: "none",
                             cursor: "pointer",
                           },
                           pressed: {
-                            fill: isVisited ? palette.hoverVisited : palette.hoverDefault,
+                            fill: isVisited ? HOVER_VISITED_COLOR : hoverDefault,
                             stroke: "#ffffff",
                             strokeWidth: 0.5,
                             outline: "none",
@@ -363,9 +430,9 @@ export default function App() {
         </section>
 
         <aside className="list-panel">
-          <h2>Visited States</h2>
+          <h2>{isUS ? "Visited States" : "Visited Countries"}</h2>
           <p className="count">
-            {visited.length}/{US_STATES.length} - {visitedPercentage}%
+            {currentVisited.length}/{currentItems.length} - {visitedPercentage}%
           </p>
           <div className="progress-track" aria-hidden="true">
             <div className="progress-fill" style={{ width: `${visitedPercentage}%` }} />
@@ -374,14 +441,14 @@ export default function App() {
             全部清除
           </button>
           <div className="state-list">
-            {US_STATES.map((state) => (
-              <label key={state} className="state-item">
+            {currentItems.map((item) => (
+              <label key={item} className="state-item">
                 <input
                   type="checkbox"
-                  checked={visitedSet.has(state)}
-                  onChange={() => toggleState(state)}
+                  checked={currentVisitedSet.has(item)}
+                  onChange={() => toggleItem(item)}
                 />
-                <span>{state}</span>
+                <span>{item}</span>
               </label>
             ))}
           </div>
