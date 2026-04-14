@@ -5,7 +5,7 @@ import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps
 
 const US_GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const EUROPE_GEO_URL =
-  "https://raw.githubusercontent.com/deldersveld/topojson/master/continents/europe.json";
+  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 const STORAGE_KEY_US = "visited-us-states";
 const STORAGE_KEY_EUROPE = "visited-europe-countries";
 const DEFAULT_VISITED = ["Texas", "New Jersey"];
@@ -179,6 +179,19 @@ const US_STATES = [
 ];
 
 const EUROPE_COUNTRIES = [
+  "Albania",
+  "Andorra",
+  "Austria",
+  "Belarus",
+  "Belgium",
+  "Bosnia and Herzegovina",
+  "Bulgaria",
+  "Croatia",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Estonia",
+  "Finland",
   "United Kingdom",
   "France",
   "Germany",
@@ -187,19 +200,42 @@ const EUROPE_COUNTRIES = [
   "Switzerland",
   "Portugal",
   "Netherlands",
-  "Belgium",
-  "Austria",
   "Poland",
-  "Czech Republic",
-  "Denmark",
   "Ireland",
   "Norway",
   "Sweden",
-  "Finland",
   "Greece",
   "Romania",
   "Hungary",
+  "Iceland",
+  "Kosovo",
+  "Latvia",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Malta",
+  "Moldova",
+  "Monaco",
+  "Montenegro",
+  "North Macedonia",
+  "San Marino",
+  "Serbia",
+  "Slovakia",
+  "Slovenia",
+  "Ukraine",
+  "Vatican",
 ];
+
+function getGeoName(geo) {
+  return (
+    geo?.properties?.name ||
+    geo?.properties?.NAME ||
+    geo?.properties?.NAME_EN ||
+    geo?.properties?.ADMIN ||
+    geo?.properties?.admin ||
+    ""
+  );
+}
 
 function normalizeVisited(items, allowedList) {
   const cleaned = Array.isArray(items)
@@ -369,7 +405,9 @@ export default function App() {
             <Geographies geography={isUS ? US_GEO_URL : EUROPE_GEO_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const geoName = geo.properties.name || geo.properties.NAME || geo.properties.NAME_EN;
+                  const geoName = getGeoName(geo);
+                  if (!geoName) return null;
+                  if (!isUS && !EUROPE_COUNTRIES.includes(geoName)) return null;
                   const isVisited = currentVisitedSet.has(geoName);
                   const abbreviation = isUS ? STATE_ABBR[geoName] : null;
                   const centroid = geoCentroid(geo);
