@@ -293,6 +293,91 @@ const LATAM_COUNTRY_META = {
 };
 
 const LATAM_COUNTRIES = Object.keys(LATAM_COUNTRY_META).sort((a, b) => a.localeCompare(b));
+const EUROPE_ABBR = {
+  Albania: "AL",
+  Andorra: "AD",
+  Austria: "AT",
+  Azerbaijan: "AZ",
+  Belarus: "BY",
+  Belgium: "BE",
+  "Bosnia and Herzegovina": "BA",
+  Bulgaria: "BG",
+  Croatia: "HR",
+  Cyprus: "CY",
+  "Czech Republic": "CZ",
+  Denmark: "DK",
+  Estonia: "EE",
+  Finland: "FI",
+  France: "FR",
+  Georgia: "GE",
+  Germany: "DE",
+  Greece: "GR",
+  Hungary: "HU",
+  Iceland: "IS",
+  Ireland: "IE",
+  Italy: "IT",
+  Kosovo: "XK",
+  Latvia: "LV",
+  Liechtenstein: "LI",
+  Lithuania: "LT",
+  Luxembourg: "LU",
+  Malta: "MT",
+  Moldova: "MD",
+  Monaco: "MC",
+  Montenegro: "ME",
+  Netherlands: "NL",
+  "North Macedonia": "MK",
+  Norway: "NO",
+  Poland: "PL",
+  Portugal: "PT",
+  Romania: "RO",
+  Serbia: "RS",
+  Slovakia: "SK",
+  Slovenia: "SI",
+  Spain: "ES",
+  Sweden: "SE",
+  Switzerland: "CH",
+  Turkey: "TR",
+  Ukraine: "UA",
+  "United Kingdom": "GB",
+  Vatican: "VA",
+};
+
+const LATAM_ABBR = {
+  Argentina: "AR",
+  Belize: "BZ",
+  Bolivia: "BO",
+  Brazil: "BR",
+  Chile: "CL",
+  Colombia: "CO",
+  "Costa Rica": "CR",
+  Ecuador: "EC",
+  Guatemala: "GT",
+  Guyana: "GY",
+  Honduras: "HN",
+  Mexico: "MX",
+  Nicaragua: "NI",
+  Panama: "PA",
+  Paraguay: "PY",
+  Peru: "PE",
+  Suriname: "SR",
+  Uruguay: "UY",
+  Venezuela: "VE",
+};
+
+const SMALL_LABEL_COUNTRIES = new Set([
+  "Luxembourg",
+  "Vatican",
+  "Monaco",
+  "Malta",
+  "Andorra",
+  "Liechtenstein",
+  "Belize",
+  "Costa Rica",
+  "Panama",
+  "El Salvador",
+  "Guatemala",
+]);
 
 function getGeoName(geo) {
   const raw =
@@ -542,7 +627,11 @@ export default function App() {
                   if (isEurope && !EUROPE_COUNTRIES.includes(geoName)) return null;
                   if (isLatAm && !LATAM_COUNTRIES.includes(geoName)) return null;
                   const isVisited = currentVisitedSet.has(geoName);
-                  const abbreviation = isUS ? STATE_ABBR[geoName] : null;
+                  const abbreviation = isUS
+                    ? STATE_ABBR[geoName]
+                    : isEurope
+                      ? EUROPE_ABBR[geoName]
+                      : LATAM_ABBR[geoName];
                   const centroid = geoCentroid(geo);
                   const region = REGION_BY_STATE[geoName] ?? "Northeast";
                   const palette = REGION_COLORS[region];
@@ -589,15 +678,18 @@ export default function App() {
                             cursor: "pointer",
                           },
                         }}
-                      />
+                      >
+                        <title>{geoName}</title>
+                      </Geography>
                       {abbreviation && Number.isFinite(centroid[0]) && Number.isFinite(centroid[1]) ? (
                         <Marker coordinates={centroid}>
                           <text
                             textAnchor="middle"
                             y={3}
-                            fontSize={7}
+                            fontSize={SMALL_LABEL_COUNTRIES.has(geoName) ? 5.5 : isUS ? 7 : 6.2}
                             fontWeight={700}
-                            fill={isVisited ? "#ffffff" : "#0f172a"}
+                            fill={isVisited ? "#14532d" : "rgba(241, 245, 249, 0.82)"}
+                            fontFamily="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
                             style={{ pointerEvents: "none", userSelect: "none" }}
                           >
                             {abbreviation}
