@@ -8,12 +8,13 @@ const EUROPE_GEO_URL =
   "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 const STORAGE_KEY_US = "visited-us-states";
 const STORAGE_KEY_EUROPE = "visited-europe-countries";
-const DEFAULT_VISITED = ["Texas", "New Jersey"];
+const DEFAULT_VISITED_US = ["Texas", "New Jersey"];
 const DEFAULT_VISITED_EUROPE = [];
 const VISITED_COLOR = "#10B981";
 const HOVER_VISITED_COLOR = "#059669";
 const TAB_US = "us";
 const TAB_EUROPE = "europe";
+
 const REGION_BY_STATE = {
   Connecticut: "Northeast",
   Maine: "Northeast",
@@ -178,63 +179,89 @@ const US_STATES = [
   "Wyoming",
 ];
 
-const EUROPE_COUNTRIES = [
-  "Albania",
-  "Andorra",
-  "Austria",
-  "Belarus",
-  "Belgium",
-  "Bosnia and Herzegovina",
-  "Bulgaria",
-  "Croatia",
-  "Cyprus",
-  "Czech Republic",
-  "Denmark",
-  "Estonia",
-  "Finland",
-  "United Kingdom",
-  "France",
-  "Germany",
-  "Spain",
-  "Italy",
-  "Switzerland",
-  "Portugal",
-  "Netherlands",
-  "Poland",
-  "Ireland",
-  "Norway",
-  "Sweden",
-  "Greece",
-  "Romania",
-  "Hungary",
-  "Iceland",
-  "Kosovo",
-  "Latvia",
-  "Liechtenstein",
-  "Lithuania",
-  "Luxembourg",
-  "Malta",
-  "Moldova",
-  "Monaco",
-  "Montenegro",
-  "North Macedonia",
-  "San Marino",
-  "Serbia",
-  "Slovakia",
-  "Slovenia",
-  "Ukraine",
-  "Vatican",
-];
+const VISA_LABEL = {
+  schengen: "申根",
+  visaFree: "非申根免簽",
+  visaRequired: "需簽證/電子簽",
+};
+
+const EUROPE_CATEGORY_COLORS = {
+  schengen: { default: "#dbeafe", hover: "#bfdbfe" }, // 淡藍
+  visaFree: { default: "#ede9fe", hover: "#ddd6fe" }, // 淡紫
+  visaRequired: { default: "#e5e7eb", hover: "#d1d5db" }, // 淡灰
+};
+
+const EUROPE_COUNTRY_META = {
+  Albania: { zh: "阿爾巴尼亞", flag: "🇦🇱", visaType: "visaFree" },
+  Andorra: { zh: "安道爾", flag: "🇦🇩", visaType: "schengen" },
+  Austria: { zh: "奧地利", flag: "🇦🇹", visaType: "schengen" },
+  Azerbaijan: { zh: "亞塞拜然", flag: "🇦🇿", visaType: "visaRequired" },
+  Belarus: { zh: "白俄羅斯", flag: "🇧🇾", visaType: "visaRequired" },
+  Belgium: { zh: "比利時", flag: "🇧🇪", visaType: "schengen" },
+  "Bosnia and Herzegovina": { zh: "波士尼亞與赫塞哥維納", flag: "🇧🇦", visaType: "visaFree" },
+  Bulgaria: { zh: "保加利亞", flag: "🇧🇬", visaType: "schengen" },
+  Croatia: { zh: "克羅埃西亞", flag: "🇭🇷", visaType: "schengen" },
+  Cyprus: { zh: "賽普勒斯", flag: "🇨🇾", visaType: "visaFree" },
+  "Czech Republic": { zh: "捷克", flag: "🇨🇿", visaType: "schengen" },
+  Denmark: { zh: "丹麥", flag: "🇩🇰", visaType: "schengen" },
+  Estonia: { zh: "愛沙尼亞", flag: "🇪🇪", visaType: "schengen" },
+  Finland: { zh: "芬蘭", flag: "🇫🇮", visaType: "schengen" },
+  France: { zh: "法國", flag: "🇫🇷", visaType: "schengen" },
+  Georgia: { zh: "喬治亞", flag: "🇬🇪", visaType: "visaFree" },
+  Germany: { zh: "德國", flag: "🇩🇪", visaType: "schengen" },
+  Greece: { zh: "希臘", flag: "🇬🇷", visaType: "schengen" },
+  Hungary: { zh: "匈牙利", flag: "🇭🇺", visaType: "schengen" },
+  Iceland: { zh: "冰島", flag: "🇮🇸", visaType: "schengen" },
+  Ireland: { zh: "愛爾蘭", flag: "🇮🇪", visaType: "visaFree" },
+  Italy: { zh: "義大利", flag: "🇮🇹", visaType: "schengen" },
+  Kosovo: { zh: "科索沃", flag: "🇽🇰", visaType: "visaFree" },
+  Latvia: { zh: "拉脫維亞", flag: "🇱🇻", visaType: "schengen" },
+  Liechtenstein: { zh: "列支敦斯登", flag: "🇱🇮", visaType: "schengen" },
+  Lithuania: { zh: "立陶宛", flag: "🇱🇹", visaType: "schengen" },
+  Luxembourg: { zh: "盧森堡", flag: "🇱🇺", visaType: "schengen" },
+  Malta: { zh: "馬爾他", flag: "🇲🇹", visaType: "schengen" },
+  Moldova: { zh: "摩爾多瓦", flag: "🇲🇩", visaType: "visaFree" },
+  Monaco: { zh: "摩納哥", flag: "🇲🇨", visaType: "schengen" },
+  Montenegro: { zh: "蒙特內哥羅", flag: "🇲🇪", visaType: "visaFree" },
+  Netherlands: { zh: "荷蘭", flag: "🇳🇱", visaType: "schengen" },
+  "North Macedonia": { zh: "北馬其頓", flag: "🇲🇰", visaType: "visaFree" },
+  Norway: { zh: "挪威", flag: "🇳🇴", visaType: "schengen" },
+  Poland: { zh: "波蘭", flag: "🇵🇱", visaType: "schengen" },
+  Portugal: { zh: "葡萄牙", flag: "🇵🇹", visaType: "schengen" },
+  Romania: { zh: "羅馬尼亞", flag: "🇷🇴", visaType: "schengen" },
+  Serbia: { zh: "塞爾維亞", flag: "🇷🇸", visaType: "visaFree" },
+  Slovakia: { zh: "斯洛伐克", flag: "🇸🇰", visaType: "schengen" },
+  Slovenia: { zh: "斯洛維尼亞", flag: "🇸🇮", visaType: "schengen" },
+  Spain: { zh: "西班牙", flag: "🇪🇸", visaType: "schengen" },
+  Sweden: { zh: "瑞典", flag: "🇸🇪", visaType: "schengen" },
+  Switzerland: { zh: "瑞士", flag: "🇨🇭", visaType: "schengen" },
+  Turkey: { zh: "土耳其", flag: "🇹🇷", visaType: "visaRequired" },
+  Ukraine: { zh: "烏克蘭", flag: "🇺🇦", visaType: "visaFree" },
+  "United Kingdom": { zh: "英國", flag: "🇬🇧", visaType: "visaFree" },
+  Vatican: { zh: "梵蒂岡", flag: "🇻🇦", visaType: "schengen" },
+};
+
+const EUROPE_COUNTRIES = Object.keys(EUROPE_COUNTRY_META).sort((a, b) => a.localeCompare(b));
+
+const EUROPE_NAME_ALIASES = {
+  "Czechia": "Czech Republic",
+  "Bosnia and Herz.": "Bosnia and Herzegovina",
+  "Macedonia": "North Macedonia",
+  "Republic of Moldova": "Moldova",
+  "Russian Federation": "Russia",
+  "Türkiye": "Turkey",
+  "United Kingdom of Great Britain and Northern Ireland": "United Kingdom",
+};
 
 function getGeoName(geo) {
-  return (
+  const raw =
     geo?.properties?.name ||
     geo?.properties?.NAME ||
     geo?.properties?.NAME_EN ||
     geo?.properties?.ADMIN ||
     geo?.properties?.admin ||
-    ""
-  );
+    "";
+  return EUROPE_NAME_ALIASES[raw] || raw;
 }
 
 function normalizeVisited(items, allowedList) {
@@ -280,7 +307,7 @@ export default function App() {
   const mapCaptureRef = useRef(null);
   const [activeTab, setActiveTab] = useState(TAB_US);
   const [visitedUS, setVisitedUS] = useState(() =>
-    getInitialVisited(STORAGE_KEY_US, DEFAULT_VISITED, US_STATES)
+    getInitialVisited(STORAGE_KEY_US, DEFAULT_VISITED_US, US_STATES)
   );
   const [visitedEurope, setVisitedEurope] = useState(() =>
     getInitialVisited(STORAGE_KEY_EUROPE, DEFAULT_VISITED_EUROPE, EUROPE_COUNTRIES)
@@ -290,6 +317,26 @@ export default function App() {
   const currentItems = isUS ? US_STATES : EUROPE_COUNTRIES;
   const currentVisited = isUS ? visitedUS : visitedEurope;
   const currentVisitedSet = useMemo(() => new Set(currentVisited), [currentVisited]);
+  const schengenVisitedCount = useMemo(
+    () =>
+      visitedEurope.filter((country) => EUROPE_COUNTRY_META[country]?.visaType === "schengen")
+        .length,
+    [visitedEurope]
+  );
+
+  const europeGroupedList = useMemo(() => {
+    const grouped = {
+      schengen: [],
+      visaFree: [],
+      visaRequired: [],
+    };
+    for (const country of EUROPE_COUNTRIES) {
+      const type = EUROPE_COUNTRY_META[country]?.visaType || "visaRequired";
+      grouped[type].push(country);
+    }
+    return grouped;
+  }, []);
+
   const visitedPercentage = Math.round((currentVisited.length / currentItems.length) * 100);
   const visitedParam = currentVisited
     .map((item) => encodeURIComponent(item))
@@ -398,8 +445,8 @@ export default function App() {
           </div>
 
           <ComposableMap
-            projection={isUS ? "geoAlbersUsa" : "geoMercator"}
-            projectionConfig={isUS ? undefined : { scale: 430, center: [15, 52] }}
+            projection={isUS ? "geoAlbersUsa" : "geoConicConformal"}
+            projectionConfig={isUS ? undefined : { scale: 800, center: [10, 52] }}
             className="us-map"
           >
             <Geographies geography={isUS ? US_GEO_URL : EUROPE_GEO_URL}>
@@ -413,8 +460,10 @@ export default function App() {
                   const centroid = geoCentroid(geo);
                   const region = REGION_BY_STATE[geoName] ?? "Northeast";
                   const palette = REGION_COLORS[region];
-                  const defaultFill = isUS ? palette.default : "#1f2937";
-                  const hoverDefault = isUS ? palette.hoverDefault : "#334155";
+                  const europeType = EUROPE_COUNTRY_META[geoName]?.visaType || "visaRequired";
+                  const europePalette = EUROPE_CATEGORY_COLORS[europeType];
+                  const defaultFill = isUS ? palette.default : europePalette.default;
+                  const hoverDefault = isUS ? palette.hoverDefault : europePalette.hover;
 
                   return (
                     <g key={geo.rsmKey}>
@@ -465,6 +514,11 @@ export default function App() {
               }
             </Geographies>
           </ComposableMap>
+          {!isUS ? (
+            <p className="schengen-note">
+              台灣護照於申根區每 180 天內可停留 90 天。
+            </p>
+          ) : null}
         </section>
 
         <aside className="list-panel">
@@ -478,18 +532,46 @@ export default function App() {
           <button type="button" className="clear-button" onClick={handleClearAll}>
             全部清除
           </button>
-          <div className="state-list">
-            {currentItems.map((item) => (
-              <label key={item} className="state-item">
-                <input
-                  type="checkbox"
-                  checked={currentVisitedSet.has(item)}
-                  onChange={() => toggleItem(item)}
-                />
-                <span>{item}</span>
-              </label>
-            ))}
-          </div>
+          {!isUS ? <p className="schengen-counter">已點亮申根國：{schengenVisitedCount}</p> : null}
+          {isUS ? (
+            <div className="state-list">
+              {currentItems.map((item) => (
+                <label key={item} className="state-item">
+                  <input
+                    type="checkbox"
+                    checked={currentVisitedSet.has(item)}
+                    onChange={() => toggleItem(item)}
+                  />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <div className="grouped-list">
+              {["schengen", "visaFree", "visaRequired"].map((groupKey) => (
+                <section key={groupKey} className="group-block">
+                  <h3>{VISA_LABEL[groupKey]}</h3>
+                  <div className="state-list">
+                    {europeGroupedList[groupKey].map((country) => {
+                      const meta = EUROPE_COUNTRY_META[country];
+                      return (
+                        <label key={country} className="state-item">
+                          <input
+                            type="checkbox"
+                            checked={currentVisitedSet.has(country)}
+                            onChange={() => toggleItem(country)}
+                          />
+                          <span>
+                            {meta.zh} {meta.flag} ({VISA_LABEL[meta.visaType]})
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
         </aside>
       </main>
       <footer className="site-footer">Made by sunnyfge</footer>

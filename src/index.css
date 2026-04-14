@@ -115,6 +115,13 @@ p {
   color: #bfdbfe;
 }
 
+.schengen-note {
+  margin-top: 10px;
+  margin-bottom: 0;
+  color: #93c5fd;
+  font-size: 13px;
+}
+
 .us-map {
   width: 100%;
   height: auto;
@@ -155,6 +162,28 @@ p {
 
 .clear-button:hover {
   background: #f3f4f6;
+}
+
+.schengen-counter {
+  color: #111827;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.grouped-list {
+  display: grid;
+  gap: 12px;
+}
+
+.group-block h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.grouped-list .state-list {
+  max-height: none;
+  overflow: visible;
 }
 
 .state-list {
