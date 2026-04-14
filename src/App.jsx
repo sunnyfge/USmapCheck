@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import { geoCentroid } from "d3-geo";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
@@ -216,10 +217,17 @@ function getInitialVisited() {
 }
 
 export default function App() {
+  const mapCaptureRef = useRef(null);
   const [visited, setVisited] = useState(getInitialVisited);
   const [shareMessage, setShareMessage] = useState("");
   const visitedSet = useMemo(() => new Set(visited), [visited]);
   const visitedPercentage = Math.round((visited.length / US_STATES.length) * 100);
+  const visitedParam = visited
+    .map((state) => STATE_ABBR[state])
+    .filter(Boolean)
+    .sort()
+    .join(",");
+  const shareUrl = `${window.location.origin}${window.location.pathname}?visited=${visitedParam}`;
 
   const toggleState = (stateName) => {
     if (!stateName || !US_STATES.includes(stateName)) return;
@@ -234,18 +242,39 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const visitedParam = visited
-      .map((state) => STATE_ABBR[state])
-      .filter(Boolean)
-      .sort()
-      .join(",");
-    const shareUrl = `${window.location.origin}${window.location.pathname}?visited=${visitedParam}`;
-
     try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "My US Travel Map",
+          text: `我已造訪 ${visited.length}/${US_STATES.length} 州，來看看我的足跡！`,
+          url: shareUrl,
+        });
+        setShareMessage("已開啟分享面板！");
+        return;
+      }
+
       await navigator.clipboard.writeText(shareUrl);
       setShareMessage("已複製分享網址！");
     } catch {
       setShareMessage(`請手動複製：${shareUrl}`);
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    if (!mapCaptureRef.current) return;
+
+    try {
+      const dataUrl = await toPng(mapCaptureRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      const link = document.createElement("a");
+      link.download = `us-travel-map-${visited.length}-states.png`;
+      link.href = dataUrl;
+      link.click();
+      setShareMessage("已下載圖片！");
+    } catch {
+      setShareMessage("下載失敗，請稍後再試。");
     }
   };
 
@@ -258,12 +287,15 @@ export default function App() {
   return (
     <div className="page">
       <main className="layout">
-        <section className="map-panel">
+        <section className="map-panel" ref={mapCaptureRef}>
           <h1>US Visited States Map</h1>
           <p>Click a state on the map, or check from the list.</p>
           <div className="share-row">
             <button type="button" className="share-button" onClick={handleShare}>
               分享我的足跡
+            </button>
+            <button type="button" className="share-button secondary" onClick={handleDownloadImage}>
+              下載圖片
             </button>
             {shareMessage ? <span className="share-message">{shareMessage}</span> : null}
           </div>
@@ -355,6 +387,7 @@ export default function App() {
           </div>
         </aside>
       </main>
+      <footer className="site-footer">Made by sunnyfge</footer>
     </div>
   );
 }

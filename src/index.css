@@ -80,6 +80,14 @@ p {
   background: #1e40af;
 }
 
+.share-button.secondary {
+  background: #0f766e;
+}
+
+.share-button.secondary:hover {
+  background: #0f5e57;
+}
+
 .share-message {
   font-size: 13px;
   color: #bfdbfe;
@@ -144,8 +152,20 @@ p {
   color: #1f2937;
 }
 
+.site-footer {
+  max-width: 1200px;
+  margin: 14px auto 0;
+  text-align: right;
+  color: #93a4c4;
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    text-align: center;
   }
 }
