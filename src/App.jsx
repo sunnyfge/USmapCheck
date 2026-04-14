@@ -7,7 +7,7 @@ const US_GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const EUROPE_GEO_URL =
   "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 const LATIN_AMERICA_GEO_URL =
-  "https://raw.githubusercontent.com/deldersveld/topojson/master/continents/south-america.json";
+  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 const STORAGE_KEY_US = "visited-us-states";
 const STORAGE_KEY_EUROPE = "visited-europe-countries";
 const STORAGE_KEY_LATAM = "visited-latin-america-countries";
