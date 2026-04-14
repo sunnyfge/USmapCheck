@@ -271,20 +271,46 @@ const LATAM_STATUS_LABEL = {
 };
 
 const LATAM_COUNTRY_META = {
-  Mexico: { zh: "墨西哥", flag: "🇲🇽", subregion: "central", visaType: "visaRequired" },
+  Mexico: {
+    zh: "墨西哥",
+    flag: "🇲🇽",
+    subregion: "central",
+    visaType: "visaRequired",
+    visaLabel: "加美簽條件",
+    note: "通常需符合特定條件（如持有效美簽）才較容易入境，請出發前再確認官方規定。",
+  },
   Belize: { zh: "貝里斯", flag: "🇧🇿", subregion: "central", visaType: "diplomatic" },
   Guatemala: { zh: "瓜地馬拉", flag: "🇬🇹", subregion: "central", visaType: "diplomatic" },
-  Honduras: { zh: "宏都拉斯", flag: "🇭🇳", subregion: "central", visaType: "visaFree" },
-  Nicaragua: { zh: "尼加拉瓜", flag: "🇳🇮", subregion: "central", visaType: "visaFree" },
+  Honduras: { zh: "宏都拉斯", flag: "🇭🇳", subregion: "central", visaType: "visaRequired", visaLabel: "需簽證" },
+  Nicaragua: { zh: "尼加拉瓜", flag: "🇳🇮", subregion: "central", visaType: "visaRequired", visaLabel: "落地簽" },
   "Costa Rica": { zh: "哥斯大黎加", flag: "🇨🇷", subregion: "central", visaType: "visaFree" },
   Panama: { zh: "巴拿馬", flag: "🇵🇦", subregion: "central", visaType: "visaFree" },
   Colombia: { zh: "哥倫比亞", flag: "🇨🇴", subregion: "south", visaType: "visaFree" },
-  Venezuela: { zh: "委內瑞拉", flag: "🇻🇪", subregion: "south", visaType: "visaRequired" },
-  Guyana: { zh: "蓋亞那", flag: "🇬🇾", subregion: "south", visaType: "visaRequired" },
+  Venezuela: {
+    zh: "委內瑞拉",
+    flag: "🇻🇪",
+    subregion: "south",
+    visaType: "visaRequired",
+    visaLabel: "入境困難",
+    note: "即使有簽證也可能面臨較高入境不確定性，建議以最新外交與航空公告為準。",
+  },
+  Guyana: {
+    zh: "蓋亞那",
+    flag: "🇬🇾",
+    subregion: "south",
+    visaType: "visaRequired",
+    visaLabel: "需簽證",
+  },
   Suriname: { zh: "蘇利南", flag: "🇸🇷", subregion: "south", visaType: "visaRequired" },
   Ecuador: { zh: "厄瓜多", flag: "🇪🇨", subregion: "south", visaType: "visaFree" },
   Peru: { zh: "秘魯", flag: "🇵🇪", subregion: "south", visaType: "visaFree" },
-  Bolivia: { zh: "玻利維亞", flag: "🇧🇴", subregion: "south", visaType: "visaRequired" },
+  Bolivia: {
+    zh: "玻利維亞",
+    flag: "🇧🇴",
+    subregion: "south",
+    visaType: "visaRequired",
+    visaLabel: "落地簽",
+  },
   Paraguay: { zh: "巴拉圭", flag: "🇵🇾", subregion: "south", visaType: "diplomatic" },
   Chile: { zh: "智利", flag: "🇨🇱", subregion: "south", visaType: "visaFree" },
   Argentina: { zh: "阿根廷", flag: "🇦🇷", subregion: "south", visaType: "visaFree" },
@@ -441,6 +467,7 @@ export default function App() {
   const [visitedLatAm, setVisitedLatAm] = useState(() =>
     getInitialVisited(STORAGE_KEY_LATAM, DEFAULT_VISITED_LATAM, LATAM_COUNTRIES)
   );
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [shareMessage, setShareMessage] = useState("");
   const isUS = activeTab === TAB_US;
   const isEurope = activeTab === TAB_EUROPE;
@@ -488,6 +515,7 @@ export default function App() {
 
   const toggleItem = (itemName) => {
     if (!itemName || !currentItems.includes(itemName)) return;
+    if (!isUS) setSelectedCountry(itemName);
 
     const setter = isUS ? setVisitedUS : isEurope ? setVisitedEurope : setVisitedLatAm;
     const storageKey = isUS
@@ -557,6 +585,20 @@ export default function App() {
     setShareMessage("");
   };
 
+  const selectedMeta = isEurope
+    ? EUROPE_COUNTRY_META[selectedCountry]
+    : isLatAm
+      ? LATAM_COUNTRY_META[selectedCountry]
+      : null;
+
+  const selectedVisaLabel = isEurope
+    ? selectedMeta?.visaType
+      ? VISA_LABEL[selectedMeta.visaType]
+      : ""
+    : isLatAm
+      ? selectedMeta?.visaLabel || (selectedMeta?.visaType ? LATAM_STATUS_LABEL[selectedMeta.visaType] : "")
+      : "";
+
   return (
     <div className="page">
       <main className="layout">
@@ -605,6 +647,30 @@ export default function App() {
             </button>
             {shareMessage ? <span className="share-message">{shareMessage}</span> : null}
           </div>
+          {!isUS ? (
+            <div className="legend-row">
+              {(isEurope
+                ? [
+                    ["schengen", "申根免簽區"],
+                    ["visaFree", "非申根免簽"],
+                    ["visaRequired", "需簽證/電子簽"],
+                  ]
+                : [
+                    ["diplomatic", "邦交國"],
+                    ["visaFree", "免簽證區"],
+                    ["visaRequired", "需簽證/電子簽"],
+                  ]
+              ).map(([key, label]) => {
+                const palette = isEurope ? EUROPE_CATEGORY_COLORS[key] : LATAM_CATEGORY_COLORS[key];
+                return (
+                  <span key={key} className="legend-item">
+                    <i className="legend-swatch" style={{ background: palette.default }} />
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
 
           <ComposableMap
             projection={isUS ? "geoAlbersUsa" : isEurope ? "geoConicConformal" : "geoMercator"}
@@ -649,6 +715,9 @@ export default function App() {
                     : isEurope
                       ? europePalette.hover
                       : latAmPalette.hover;
+                  const borderColor = isUS ? "#ffffff" : "rgba(255,255,255,0.92)";
+                  const borderWidth = isUS ? 0.5 : 0.85;
+                  const hoverBorderWidth = isUS ? 0.5 : 1.4;
 
                   return (
                     <g key={geo.rsmKey}>
@@ -658,24 +727,27 @@ export default function App() {
                         style={{
                           default: {
                             fill: isVisited ? VISITED_COLOR : defaultFill,
-                            stroke: "#ffffff",
-                            strokeWidth: 0.5,
+                            stroke: borderColor,
+                            strokeWidth: borderWidth,
                             outline: "none",
                             cursor: "pointer",
+                            filter: "none",
                           },
                           hover: {
                             fill: isVisited ? HOVER_VISITED_COLOR : hoverDefault,
-                            stroke: "#ffffff",
-                            strokeWidth: 0.5,
+                            stroke: "#f8fafc",
+                            strokeWidth: hoverBorderWidth,
                             outline: "none",
                             cursor: "pointer",
+                            filter: isUS ? "none" : "drop-shadow(0 0 2px rgba(248,250,252,0.7))",
                           },
                           pressed: {
                             fill: isVisited ? HOVER_VISITED_COLOR : hoverDefault,
-                            stroke: "#ffffff",
-                            strokeWidth: 0.5,
+                            stroke: "#f8fafc",
+                            strokeWidth: hoverBorderWidth,
                             outline: "none",
                             cursor: "pointer",
+                            filter: isUS ? "none" : "drop-shadow(0 0 2px rgba(248,250,252,0.7))",
                           },
                         }}
                       >
@@ -702,10 +774,19 @@ export default function App() {
               }
             </Geographies>
           </ComposableMap>
-          {isEurope ? (
-            <p className="schengen-note">
-              台灣護照於申根區每 180 天內可停留 90 天。
-            </p>
+          {isEurope ? <p className="schengen-note">台灣護照於申根區每 180 天內可停留 90 天。</p> : null}
+          {!isUS ? (
+            <div className="visa-info-card">
+              <strong>點擊國家簽證資訊</strong>
+              {selectedCountry && selectedMeta ? (
+                <p>
+                  {selectedMeta.zh} {selectedMeta.flag} - {selectedVisaLabel}
+                  {selectedMeta.note ? `；${selectedMeta.note}` : ""}
+                </p>
+              ) : (
+                <p>請先點擊地圖上的國家，這裡會顯示簽證重點。</p>
+              )}
+            </div>
           ) : null}
         </section>
 
@@ -778,7 +859,7 @@ export default function App() {
                             onChange={() => toggleItem(country)}
                           />
                           <span>
-                            {meta.zh} {meta.flag} ({LATAM_STATUS_LABEL[meta.visaType]})
+                            {meta.zh} {meta.flag} ({meta.visaLabel || LATAM_STATUS_LABEL[meta.visaType]})
                           </span>
                         </label>
                       );
@@ -790,7 +871,12 @@ export default function App() {
           )}
         </aside>
       </main>
-      <footer className="site-footer">Made by sunnyfge</footer>
+      <footer className="site-footer">
+        <div>Made by sunnyfge</div>
+        <div className="disclaimer-note">
+          *簽證資訊變動快，出發前請務必再次確認外交部領事事務局官網。
+        </div>
+      </footer>
     </div>
   );
 }
