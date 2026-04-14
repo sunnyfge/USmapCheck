@@ -11,7 +11,7 @@ const LATIN_AMERICA_GEO_URL =
 const STORAGE_KEY_US = "visited-us-states";
 const STORAGE_KEY_EUROPE = "visited-europe-countries";
 const STORAGE_KEY_LATAM = "visited-latin-america-countries";
-const DEFAULT_VISITED_US = ["Texas", "New Jersey"];
+const DEFAULT_VISITED_US = [];
 const DEFAULT_VISITED_EUROPE = [];
 const DEFAULT_VISITED_LATAM = [];
 const VISITED_COLOR = "#10B981";
@@ -19,6 +19,8 @@ const HOVER_VISITED_COLOR = "#059669";
 const TAB_US = "us";
 const TAB_EUROPE = "europe";
 const TAB_LATAM = "latam";
+const LANG_ZH = "zh";
+const LANG_EN = "en";
 
 const REGION_BY_STATE = {
   Connecticut: "Northeast",
@@ -189,6 +191,11 @@ const VISA_LABEL = {
   visaFree: "非申根免簽",
   visaRequired: "需簽證/電子簽",
 };
+const VISA_LABEL_EN = {
+  schengen: "Schengen",
+  visaFree: "Non-Schengen Visa-free",
+  visaRequired: "Visa Required / e-Visa",
+};
 
 const EUROPE_CATEGORY_COLORS = {
   schengen: { default: "#dbeafe", hover: "#bfdbfe" }, // 淡藍
@@ -268,6 +275,11 @@ const LATAM_STATUS_LABEL = {
   diplomatic: "免簽/邦交",
   visaFree: "免簽",
   visaRequired: "電子簽/需簽證",
+};
+const LATAM_STATUS_LABEL_EN = {
+  diplomatic: "Visa-free / Diplomatic Ally",
+  visaFree: "Visa-free",
+  visaRequired: "e-Visa / Visa Required",
 };
 
 const LATAM_COUNTRY_META = {
@@ -458,6 +470,7 @@ function getInitialVisited(storageKey, defaultList, allowedList) {
 export default function App() {
   const mapCaptureRef = useRef(null);
   const [activeTab, setActiveTab] = useState(TAB_US);
+  const [lang, setLang] = useState(LANG_EN);
   const [visitedUS, setVisitedUS] = useState(() =>
     getInitialVisited(STORAGE_KEY_US, DEFAULT_VISITED_US, US_STATES)
   );
@@ -554,14 +567,14 @@ export default function App() {
           }，來看看我的足跡！`,
           url: shareUrl,
         });
-        setShareMessage("已開啟分享面板！");
+        setShareMessage(lang === LANG_EN ? "Share panel opened." : "已開啟分享面板！");
         return;
       }
 
       await navigator.clipboard.writeText(shareUrl);
-      setShareMessage("已複製分享網址！");
+      setShareMessage(lang === LANG_EN ? "Share link copied." : "已複製分享網址！");
     } catch {
-      setShareMessage(`請手動複製：${shareUrl}`);
+      setShareMessage(lang === LANG_EN ? `Copy manually: ${shareUrl}` : `請手動複製：${shareUrl}`);
     }
   };
 
@@ -578,9 +591,9 @@ export default function App() {
       link.download = `${activeTab}-travel-map-${currentVisited.length}.png`;
       link.href = dataUrl;
       link.click();
-      setShareMessage("已下載圖片！");
+      setShareMessage(lang === LANG_EN ? "Image downloaded." : "已下載圖片！");
     } catch {
-      setShareMessage("下載失敗，請稍後再試。");
+      setShareMessage(lang === LANG_EN ? "Download failed, please try again." : "下載失敗，請稍後再試。");
     }
   };
 
@@ -611,6 +624,16 @@ export default function App() {
     : isLatAm
       ? selectedMeta?.visaLabel || (selectedMeta?.visaType ? LATAM_STATUS_LABEL[selectedMeta.visaType] : "")
       : "";
+  const selectedVisaLabelEn = isEurope
+    ? selectedMeta?.visaType
+      ? VISA_LABEL_EN[selectedMeta.visaType]
+      : ""
+    : isLatAm
+      ? selectedMeta?.visaType
+        ? LATAM_STATUS_LABEL_EN[selectedMeta.visaType]
+        : ""
+      : "";
+  const isEn = lang === LANG_EN;
 
   return (
     <div className="page">
@@ -622,21 +645,28 @@ export default function App() {
               className={`tab-button ${isUS ? "active" : ""}`}
               onClick={() => setActiveTab(TAB_US)}
             >
-              美國地圖
+              {isEn ? "US Map" : "美國地圖"}
             </button>
             <button
               type="button"
               className={`tab-button ${isEurope ? "active" : ""}`}
               onClick={() => setActiveTab(TAB_EUROPE)}
             >
-              歐洲地圖
+              {isEn ? "Europe Map" : "歐洲地圖"}
             </button>
             <button
               type="button"
               className={`tab-button ${isLatAm ? "active" : ""}`}
               onClick={() => setActiveTab(TAB_LATAM)}
             >
-              中南美洲
+              {isEn ? "Latin America" : "中南美洲"}
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${isEn ? "active" : ""}`}
+              onClick={() => setLang((prev) => (prev === LANG_EN ? LANG_ZH : LANG_EN))}
+            >
+              {isEn ? "English" : "中文/English"}
             </button>
           </div>
           <h1>
@@ -654,10 +684,10 @@ export default function App() {
           <p className="achievement-text">{achievementText}</p>
           <div className="share-row">
             <button type="button" className="share-button" onClick={handleShare}>
-              分享我的足跡
+              {isEn ? "Share my footprint" : "分享我的足跡"}
             </button>
             <button type="button" className="share-button secondary" onClick={handleDownloadImage}>
-              下載圖片
+              {isEn ? "Download image" : "下載圖片"}
             </button>
             {shareMessage ? <span className="share-message">{shareMessage}</span> : null}
           </div>
@@ -665,14 +695,17 @@ export default function App() {
             <div className="legend-row">
               {(isEurope
                 ? [
-                    ["schengen", "申根免簽區"],
-                    ["visaFree", "非申根免簽"],
-                    ["visaRequired", "需簽證/電子簽"],
+                    [
+                      "schengen",
+                      isEn ? "Schengen Visa-free Area" : "申根免簽區",
+                    ],
+                    ["visaFree", isEn ? "Non-Schengen Visa-free" : "非申根免簽"],
+                    ["visaRequired", isEn ? "Visa Required / e-Visa" : "需簽證/電子簽"],
                   ]
                 : [
-                    ["diplomatic", "邦交國"],
-                    ["visaFree", "免簽證區"],
-                    ["visaRequired", "需簽證/電子簽"],
+                    ["diplomatic", isEn ? "Diplomatic Allies" : "邦交國"],
+                    ["visaFree", isEn ? "Visa-free Zone" : "免簽證區"],
+                    ["visaRequired", isEn ? "Visa Required / e-Visa" : "需簽證/電子簽"],
                   ]
               ).map(([key, label]) => {
                 const palette = isEurope ? EUROPE_CATEGORY_COLORS[key] : LATAM_CATEGORY_COLORS[key];
@@ -788,17 +821,28 @@ export default function App() {
               }
             </Geographies>
           </ComposableMap>
-          {isEurope ? <p className="schengen-note">台灣護照於申根區每 180 天內可停留 90 天。</p> : null}
+          {isEurope ? (
+            <p className="schengen-note">
+              {isEn
+                ? "Taiwan passport holders can stay in Schengen for up to 90 days within any 180-day period."
+                : "台灣護照於申根區每 180 天內可停留 90 天。"}
+            </p>
+          ) : null}
           {!isUS ? (
             <div className="visa-info-card">
-              <strong>點擊國家簽證資訊</strong>
+              <strong>{isEn ? "Click country for visa info" : "點擊國家簽證資訊"}</strong>
               {selectedCountry && selectedMeta ? (
                 <p>
-                  {selectedMeta.zh} {selectedMeta.flag} - {selectedVisaLabel}
+                  {isEn ? selectedCountry : selectedMeta.zh} {selectedMeta.flag} -{" "}
+                  {isEn ? selectedVisaLabelEn : selectedVisaLabel}
                   {selectedMeta.note ? `；${selectedMeta.note}` : ""}
                 </p>
               ) : (
-                <p>請先點擊地圖上的國家，這裡會顯示簽證重點。</p>
+                <p>
+                  {isEn
+                    ? "Click a country on the map to see its visa highlights."
+                    : "請先點擊地圖上的國家，這裡會顯示簽證重點。"}
+                </p>
               )}
             </div>
           ) : null}
@@ -814,9 +858,13 @@ export default function App() {
             <div className="progress-fill" style={{ width: `${visitedPercentage}%` }} />
           </div>
           <button type="button" className="clear-button" onClick={handleClearAll}>
-            全部清除
+            {isEn ? "Clear all" : "全部清除"}
           </button>
-          {isEurope ? <p className="schengen-counter">已點亮申根國：{schengenVisitedCount}</p> : null}
+          {isEurope ? (
+            <p className="schengen-counter">
+              {isEn ? `Schengen visited: ${schengenVisitedCount}` : `已點亮申根國：${schengenVisitedCount}`}
+            </p>
+          ) : null}
           {isUS ? (
             <div className="state-list">
               {currentItems.map((item) => (
@@ -846,7 +894,8 @@ export default function App() {
                             onChange={() => toggleItem(country)}
                           />
                           <span>
-                            {meta.zh} {meta.flag} ({VISA_LABEL[meta.visaType]})
+                            {isEn ? country : meta.zh} {meta.flag} (
+                            {isEn ? VISA_LABEL_EN[meta.visaType] : VISA_LABEL[meta.visaType]})
                           </span>
                         </label>
                       );
@@ -858,8 +907,8 @@ export default function App() {
           ) : (
             <div className="grouped-list">
               {[
-                ["central", "中美洲 (Central America)"],
-                ["south", "南美洲 (South America)"],
+                ["central", isEn ? "Central America" : "中美洲 (Central America)"],
+                ["south", isEn ? "South America" : "南美洲 (South America)"],
               ].map(([groupKey, title]) => (
                 <section key={groupKey} className="group-block">
                   <h3>{title}</h3>
@@ -874,7 +923,13 @@ export default function App() {
                             onChange={() => toggleItem(country)}
                           />
                           <span>
-                            {meta.zh} {meta.flag} ({meta.visaLabel || LATAM_STATUS_LABEL[meta.visaType]})
+                            {isEn ? country : meta.zh} {meta.flag} (
+                            {isEn
+                              ? meta.visaType
+                                ? LATAM_STATUS_LABEL_EN[meta.visaType]
+                                : ""
+                              : meta.visaLabel || LATAM_STATUS_LABEL[meta.visaType]}
+                            )
                           </span>
                         </label>
                       );
@@ -889,7 +944,9 @@ export default function App() {
       <footer className="site-footer">
         <div>Made by sunnyfge</div>
         <div className="disclaimer-note">
-          *簽證資訊變動快，出發前請務必再次確認外交部領事事務局官網。
+          {isEn
+            ? "*Visa policies can change quickly. Please re-check official BOCA/consular information before departure."
+            : "*簽證資訊變動快，出發前請務必再次確認外交部領事事務局官網。"}
         </div>
       </footer>
     </div>
