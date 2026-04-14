@@ -6,14 +6,19 @@ import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps
 const US_GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const EUROPE_GEO_URL =
   "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
+const LATIN_AMERICA_GEO_URL =
+  "https://raw.githubusercontent.com/deldersveld/topojson/master/continents/south-america.json";
 const STORAGE_KEY_US = "visited-us-states";
 const STORAGE_KEY_EUROPE = "visited-europe-countries";
+const STORAGE_KEY_LATAM = "visited-latin-america-countries";
 const DEFAULT_VISITED_US = ["Texas", "New Jersey"];
 const DEFAULT_VISITED_EUROPE = [];
+const DEFAULT_VISITED_LATAM = [];
 const VISITED_COLOR = "#10B981";
 const HOVER_VISITED_COLOR = "#059669";
 const TAB_US = "us";
 const TAB_EUROPE = "europe";
+const TAB_LATAM = "latam";
 
 const REGION_BY_STATE = {
   Connecticut: "Northeast",
@@ -191,6 +196,12 @@ const EUROPE_CATEGORY_COLORS = {
   visaRequired: { default: "#e5e7eb", hover: "#d1d5db" }, // 淡灰
 };
 
+const LATAM_CATEGORY_COLORS = {
+  diplomatic: { default: "#fbcfe8", hover: "#f9a8d4" }, // 淡粉紅
+  visaFree: { default: "#fef3c7", hover: "#fde68a" }, // 淡黃
+  visaRequired: { default: "#e5e7eb", hover: "#d1d5db" }, // 淡灰
+};
+
 const EUROPE_COUNTRY_META = {
   Albania: { zh: "阿爾巴尼亞", flag: "🇦🇱", visaType: "visaFree" },
   Andorra: { zh: "安道爾", flag: "🇦🇩", visaType: "schengen" },
@@ -253,6 +264,36 @@ const EUROPE_NAME_ALIASES = {
   "United Kingdom of Great Britain and Northern Ireland": "United Kingdom",
 };
 
+const LATAM_STATUS_LABEL = {
+  diplomatic: "免簽/邦交",
+  visaFree: "免簽",
+  visaRequired: "電子簽/需簽證",
+};
+
+const LATAM_COUNTRY_META = {
+  Mexico: { zh: "墨西哥", flag: "🇲🇽", subregion: "central", visaType: "visaRequired" },
+  Belize: { zh: "貝里斯", flag: "🇧🇿", subregion: "central", visaType: "diplomatic" },
+  Guatemala: { zh: "瓜地馬拉", flag: "🇬🇹", subregion: "central", visaType: "diplomatic" },
+  Honduras: { zh: "宏都拉斯", flag: "🇭🇳", subregion: "central", visaType: "visaFree" },
+  Nicaragua: { zh: "尼加拉瓜", flag: "🇳🇮", subregion: "central", visaType: "visaFree" },
+  "Costa Rica": { zh: "哥斯大黎加", flag: "🇨🇷", subregion: "central", visaType: "visaFree" },
+  Panama: { zh: "巴拿馬", flag: "🇵🇦", subregion: "central", visaType: "visaFree" },
+  Colombia: { zh: "哥倫比亞", flag: "🇨🇴", subregion: "south", visaType: "visaFree" },
+  Venezuela: { zh: "委內瑞拉", flag: "🇻🇪", subregion: "south", visaType: "visaRequired" },
+  Guyana: { zh: "蓋亞那", flag: "🇬🇾", subregion: "south", visaType: "visaRequired" },
+  Suriname: { zh: "蘇利南", flag: "🇸🇷", subregion: "south", visaType: "visaRequired" },
+  Ecuador: { zh: "厄瓜多", flag: "🇪🇨", subregion: "south", visaType: "visaFree" },
+  Peru: { zh: "秘魯", flag: "🇵🇪", subregion: "south", visaType: "visaFree" },
+  Bolivia: { zh: "玻利維亞", flag: "🇧🇴", subregion: "south", visaType: "visaRequired" },
+  Paraguay: { zh: "巴拉圭", flag: "🇵🇾", subregion: "south", visaType: "diplomatic" },
+  Chile: { zh: "智利", flag: "🇨🇱", subregion: "south", visaType: "visaFree" },
+  Argentina: { zh: "阿根廷", flag: "🇦🇷", subregion: "south", visaType: "visaFree" },
+  Uruguay: { zh: "烏拉圭", flag: "🇺🇾", subregion: "south", visaType: "visaFree" },
+  Brazil: { zh: "巴西", flag: "🇧🇷", subregion: "south", visaType: "visaRequired" },
+};
+
+const LATAM_COUNTRIES = Object.keys(LATAM_COUNTRY_META).sort((a, b) => a.localeCompare(b));
+
 function getGeoName(geo) {
   const raw =
     geo?.properties?.name ||
@@ -312,10 +353,15 @@ export default function App() {
   const [visitedEurope, setVisitedEurope] = useState(() =>
     getInitialVisited(STORAGE_KEY_EUROPE, DEFAULT_VISITED_EUROPE, EUROPE_COUNTRIES)
   );
+  const [visitedLatAm, setVisitedLatAm] = useState(() =>
+    getInitialVisited(STORAGE_KEY_LATAM, DEFAULT_VISITED_LATAM, LATAM_COUNTRIES)
+  );
   const [shareMessage, setShareMessage] = useState("");
   const isUS = activeTab === TAB_US;
-  const currentItems = isUS ? US_STATES : EUROPE_COUNTRIES;
-  const currentVisited = isUS ? visitedUS : visitedEurope;
+  const isEurope = activeTab === TAB_EUROPE;
+  const isLatAm = activeTab === TAB_LATAM;
+  const currentItems = isUS ? US_STATES : isEurope ? EUROPE_COUNTRIES : LATAM_COUNTRIES;
+  const currentVisited = isUS ? visitedUS : isEurope ? visitedEurope : visitedLatAm;
   const currentVisitedSet = useMemo(() => new Set(currentVisited), [currentVisited]);
   const schengenVisitedCount = useMemo(
     () =>
@@ -336,6 +382,17 @@ export default function App() {
     }
     return grouped;
   }, []);
+  const latAmGroupedList = useMemo(() => {
+    const grouped = {
+      central: [],
+      south: [],
+    };
+    for (const country of LATAM_COUNTRIES) {
+      const region = LATAM_COUNTRY_META[country]?.subregion || "south";
+      grouped[region].push(country);
+    }
+    return grouped;
+  }, []);
 
   const visitedPercentage = Math.round((currentVisited.length / currentItems.length) * 100);
   const visitedParam = currentVisited
@@ -347,8 +404,12 @@ export default function App() {
   const toggleItem = (itemName) => {
     if (!itemName || !currentItems.includes(itemName)) return;
 
-    const setter = isUS ? setVisitedUS : setVisitedEurope;
-    const storageKey = isUS ? STORAGE_KEY_US : STORAGE_KEY_EUROPE;
+    const setter = isUS ? setVisitedUS : isEurope ? setVisitedEurope : setVisitedLatAm;
+    const storageKey = isUS
+      ? STORAGE_KEY_US
+      : isEurope
+        ? STORAGE_KEY_EUROPE
+        : STORAGE_KEY_LATAM;
     setter((current) => {
       const next = current.includes(itemName)
         ? current.filter((name) => name !== itemName)
@@ -362,7 +423,7 @@ export default function App() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: isUS ? "My US Travel Map" : "My Europe Travel Map",
+          title: isUS ? "My US Travel Map" : isEurope ? "My Europe Travel Map" : "My Latin America Travel Map",
           text: `我已造訪 ${currentVisited.length}/${currentItems.length} ${
             isUS ? "州" : "國家"
           }，來看看我的足跡！`,
@@ -401,9 +462,12 @@ export default function App() {
     if (isUS) {
       setVisitedUS([]);
       localStorage.setItem(STORAGE_KEY_US, JSON.stringify([]));
-    } else {
+    } else if (isEurope) {
       setVisitedEurope([]);
       localStorage.setItem(STORAGE_KEY_EUROPE, JSON.stringify([]));
+    } else {
+      setVisitedLatAm([]);
+      localStorage.setItem(STORAGE_KEY_LATAM, JSON.stringify([]));
     }
     setShareMessage("");
   };
@@ -422,13 +486,26 @@ export default function App() {
             </button>
             <button
               type="button"
-              className={`tab-button ${!isUS ? "active" : ""}`}
+              className={`tab-button ${isEurope ? "active" : ""}`}
               onClick={() => setActiveTab(TAB_EUROPE)}
             >
               歐洲地圖
             </button>
+            <button
+              type="button"
+              className={`tab-button ${isLatAm ? "active" : ""}`}
+              onClick={() => setActiveTab(TAB_LATAM)}
+            >
+              中南美洲
+            </button>
           </div>
-          <h1>{isUS ? "US Visited States Map" : "Europe Visited Countries Map"}</h1>
+          <h1>
+            {isUS
+              ? "US Visited States Map"
+              : isEurope
+                ? "Europe Visited Countries Map"
+                : "Latin America Visited Countries Map"}
+          </h1>
           <p>
             {isUS
               ? "Click a state on the map, or check from the list."
@@ -445,16 +522,25 @@ export default function App() {
           </div>
 
           <ComposableMap
-            projection={isUS ? "geoAlbersUsa" : "geoConicConformal"}
-            projectionConfig={isUS ? undefined : { scale: 800, center: [10, 52] }}
+            projection={isUS ? "geoAlbersUsa" : isEurope ? "geoConicConformal" : "geoMercator"}
+            projectionConfig={
+              isUS
+                ? undefined
+                : isEurope
+                  ? { scale: 800, center: [10, 52] }
+                  : { scale: 320, center: [-75, -15] }
+            }
             className="us-map"
           >
-            <Geographies geography={isUS ? US_GEO_URL : EUROPE_GEO_URL}>
+            <Geographies
+              geography={isUS ? US_GEO_URL : isEurope ? EUROPE_GEO_URL : LATIN_AMERICA_GEO_URL}
+            >
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const geoName = getGeoName(geo);
                   if (!geoName) return null;
-                  if (!isUS && !EUROPE_COUNTRIES.includes(geoName)) return null;
+                  if (isEurope && !EUROPE_COUNTRIES.includes(geoName)) return null;
+                  if (isLatAm && !LATAM_COUNTRIES.includes(geoName)) return null;
                   const isVisited = currentVisitedSet.has(geoName);
                   const abbreviation = isUS ? STATE_ABBR[geoName] : null;
                   const centroid = geoCentroid(geo);
@@ -462,8 +548,18 @@ export default function App() {
                   const palette = REGION_COLORS[region];
                   const europeType = EUROPE_COUNTRY_META[geoName]?.visaType || "visaRequired";
                   const europePalette = EUROPE_CATEGORY_COLORS[europeType];
-                  const defaultFill = isUS ? palette.default : europePalette.default;
-                  const hoverDefault = isUS ? palette.hoverDefault : europePalette.hover;
+                  const latAmType = LATAM_COUNTRY_META[geoName]?.visaType || "visaRequired";
+                  const latAmPalette = LATAM_CATEGORY_COLORS[latAmType];
+                  const defaultFill = isUS
+                    ? palette.default
+                    : isEurope
+                      ? europePalette.default
+                      : latAmPalette.default;
+                  const hoverDefault = isUS
+                    ? palette.hoverDefault
+                    : isEurope
+                      ? europePalette.hover
+                      : latAmPalette.hover;
 
                   return (
                     <g key={geo.rsmKey}>
@@ -514,7 +610,7 @@ export default function App() {
               }
             </Geographies>
           </ComposableMap>
-          {!isUS ? (
+          {isEurope ? (
             <p className="schengen-note">
               台灣護照於申根區每 180 天內可停留 90 天。
             </p>
@@ -532,7 +628,7 @@ export default function App() {
           <button type="button" className="clear-button" onClick={handleClearAll}>
             全部清除
           </button>
-          {!isUS ? <p className="schengen-counter">已點亮申根國：{schengenVisitedCount}</p> : null}
+          {isEurope ? <p className="schengen-counter">已點亮申根國：{schengenVisitedCount}</p> : null}
           {isUS ? (
             <div className="state-list">
               {currentItems.map((item) => (
@@ -546,7 +642,7 @@ export default function App() {
                 </label>
               ))}
             </div>
-          ) : (
+          ) : isEurope ? (
             <div className="grouped-list">
               {["schengen", "visaFree", "visaRequired"].map((groupKey) => (
                 <section key={groupKey} className="group-block">
@@ -563,6 +659,34 @@ export default function App() {
                           />
                           <span>
                             {meta.zh} {meta.flag} ({VISA_LABEL[meta.visaType]})
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="grouped-list">
+              {[
+                ["central", "中美洲 (Central America)"],
+                ["south", "南美洲 (South America)"],
+              ].map(([groupKey, title]) => (
+                <section key={groupKey} className="group-block">
+                  <h3>{title}</h3>
+                  <div className="state-list">
+                    {latAmGroupedList[groupKey].map((country) => {
+                      const meta = LATAM_COUNTRY_META[country];
+                      return (
+                        <label key={country} className="state-item">
+                          <input
+                            type="checkbox"
+                            checked={currentVisitedSet.has(country)}
+                            onChange={() => toggleItem(country)}
+                          />
+                          <span>
+                            {meta.zh} {meta.flag} ({LATAM_STATUS_LABEL[meta.visaType]})
                           </span>
                         </label>
                       );
