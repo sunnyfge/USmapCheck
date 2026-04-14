@@ -27,6 +27,11 @@ body {
   gap: 20px;
 }
 
+.capture-area {
+  background: #070b14;
+  border-radius: 14px;
+}
+
 .map-panel,
 .list-panel {
   border-radius: 12px;
@@ -56,6 +61,14 @@ p {
 
 .map-panel p {
   color: #a5b4cc;
+}
+
+.achievement-text {
+  margin: 0 0 10px;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .tab-row {
@@ -172,6 +185,14 @@ p {
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 8px;
+}
+
+.achievement-inline {
+  margin: 0 0 8px;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .progress-track {

@@ -507,6 +507,18 @@ export default function App() {
   }, []);
 
   const visitedPercentage = Math.round((currentVisited.length / currentItems.length) * 100);
+  const achievementText = useMemo(() => {
+    if (isUS) {
+      const noun = currentVisited.length === 1 ? "state" : "states";
+      return `United States: Congratulations, you've visited ${currentVisited.length} ${noun}!`;
+    }
+    if (isEurope) {
+      const noun = currentVisited.length === 1 ? "country" : "countries";
+      return `Europe: Congratulations, you've visited ${currentVisited.length} ${noun}!`;
+    }
+    const noun = currentVisited.length === 1 ? "country" : "countries";
+    return `Latin America: Congratulations, you've visited ${currentVisited.length} ${noun}!`;
+  }, [isUS, isEurope, currentVisited.length]);
   const visitedParam = currentVisited
     .map((item) => encodeURIComponent(item))
     .sort()
@@ -560,6 +572,7 @@ export default function App() {
       const dataUrl = await toPng(mapCaptureRef.current, {
         cacheBust: true,
         pixelRatio: 2,
+        backgroundColor: "#070b14",
       });
       const link = document.createElement("a");
       link.download = `${activeTab}-travel-map-${currentVisited.length}.png`;
@@ -601,8 +614,8 @@ export default function App() {
 
   return (
     <div className="page">
-      <main className="layout">
-        <section className="map-panel" ref={mapCaptureRef}>
+      <main className="layout capture-area" ref={mapCaptureRef}>
+        <section className="map-panel">
           <div className="tab-row">
             <button
               type="button"
@@ -638,6 +651,7 @@ export default function App() {
               ? "Click a state on the map, or check from the list."
               : "Click a country on the map, or check from the list."}
           </p>
+          <p className="achievement-text">{achievementText}</p>
           <div className="share-row">
             <button type="button" className="share-button" onClick={handleShare}>
               分享我的足跡
@@ -792,6 +806,7 @@ export default function App() {
 
         <aside className="list-panel">
           <h2>{isUS ? "Visited States" : "Visited Countries"}</h2>
+          <p className="achievement-inline">{achievementText}</p>
           <p className="count">
             {currentVisited.length}/{currentItems.length} - {visitedPercentage}%
           </p>
